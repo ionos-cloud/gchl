@@ -31,9 +31,14 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 )
 
-var releaseBranchRegex = regexp.MustCompile(`^release/v([0-9]+)\.([0-9]+)$`)
+func getBranchRegex(singleReleaseBranch string) *regexp.Regexp {
+	if singleReleaseBranch != "" {
+		return regexp.MustCompile(fmt.Sprintf(`^%s`, singleReleaseBranch))
+	}
+	return regexp.MustCompile(`^release/v([0-9]+)\.([0-9]+)$`)
+}
 
-func DetermineRange(ctx context.Context, client *github.Client, log logrus.FieldLogger, opts *types.Options) (string, github.Stopper, error) {
+func DetermineRange(ctx context.Context, client *github.Client, log logrus.FieldLogger, opts *types.Options, singleReleaseBranch string) (string, github.Stopper, error) {
 	targetVersion := opts.ForVersion
 
 	allRepoRefs, err := client.References(ctx, opts.Organization, opts.Repository)
@@ -62,8 +67,12 @@ func DetermineRange(ctx context.Context, client *github.Client, log logrus.Field
 		// yet and we should be looking at the release branch instead. Note that for new
 		// releases, there might not be a release branch yet, so we will fallback to the
 		// primary branch.
-
-		releaseBranch := fmt.Sprintf("release/v%d.%d", sv.Major(), sv.Minor())
+		var releaseBranch string
+		if singleReleaseBranch != "" {
+			releaseBranch = singleReleaseBranch
+		} else {
+			releaseBranch = fmt.Sprintf("release/v%d.%d", sv.Major(), sv.Minor())
+		}
 		for i, branch := range allRepoRefs.Branches {
 			if branch.Name == releaseBranch {
 				targetTag = &allRepoRefs.Branches[i]
@@ -94,6 +103,22 @@ func DetermineRange(ctx context.Context, client *github.Client, log logrus.Field
 	// out far back we need to go to collect all relevant commits.
 
 	// If a custom --end flag is given, this is trivial.
+
+	if singleReleaseBranch != "" {
+		refs, err := client.References(ctx, opts.Organization, opts.Repository)
+		if err != nil {
+			return "", nil, err
+		}
+		
+		return targetTag.Hash, func(c types.Commit) bool {
+			for _, t := range refs.Tags {
+				if t.Hash == c.Hash && c.Hash != targetTag.Hash {
+					return true
+				}
+			}
+			return false
+		}, nil
+	}
 
 	if opts.End != "" {
 		return targetTag.Hash, func(c types.Commit) bool {
@@ -134,7 +159,7 @@ func DetermineRange(ctx context.Context, client *github.Client, log logrus.Field
 
 		// find the most recent (highest) minor release for the given major
 		for _, branch := range allRepoRefs.Branches {
-			match := releaseBranchRegex.FindStringSubmatch(branch.Name)
+			match := getBranchRegex(singleReleaseBranch).FindStringSubmatch(branch.Name)
 			if match != nil {
 				minor, err := strconv.Atoi(match[2])
 				if err == nil {
@@ -152,7 +177,7 @@ func DetermineRange(ctx context.Context, client *github.Client, log logrus.Field
 		}
 	}
 
-	prevReleaseBranch, err := findPreviousReleaseBranch(sv, allRepoRefs)
+	prevReleaseBranch, err := findPreviousReleaseBranch(sv, allRepoRefs, singleReleaseBranch)
 	if err != nil {
 		return "", nil, err
 	}
@@ -199,7 +224,11 @@ func DetermineRange(ctx context.Context, client *github.Client, log logrus.Field
 	}, nil
 }
 
-func findPreviousReleaseBranch(currentVersion *semver.Version, allRepoRefs types.RepositoryRefs) (string, error) {
+func findPreviousReleaseBranch(currentVersion *semver.Version, allRepoRefs types.RepositoryRefs, singleReleaseBranch string) (string, error) {
+	if singleReleaseBranch != "" {
+		return singleReleaseBranch, nil
+	}
+
 	// go back one minor release, handle underflows (do not go from v2.0 to v1.-1)
 	prevMajor := int(currentVersion.Major())
 	prevMinor := int(currentVersion.Minor()) - 1
@@ -208,7 +237,7 @@ func findPreviousReleaseBranch(currentVersion *semver.Version, allRepoRefs types
 
 		// find the most recent (highest) minor release for the given major
 		for _, branch := range allRepoRefs.Branches {
-			match := releaseBranchRegex.FindStringSubmatch(branch.Name)
+			match := getBranchRegex(singleReleaseBranch).FindStringSubmatch(branch.Name)
 			if match != nil {
 				minor, err := strconv.Atoi(match[2])
 				if err == nil {
