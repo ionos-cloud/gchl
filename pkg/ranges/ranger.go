@@ -33,7 +33,7 @@ import (
 
 var releaseBranchRegex = regexp.MustCompile(`^release/v([0-9]+)\.([0-9]+)$`)
 
-func DetermineRange(ctx context.Context, client *github.Client, log logrus.FieldLogger, opts *types.Options) (string, github.Stopper, error) {
+func DetermineRange(ctx context.Context, client *github.Client, log logrus.FieldLogger, opts *types.Options, singleReleaseBranch string) (string, github.Stopper, error) {
 	targetVersion := opts.ForVersion
 
 	allRepoRefs, err := client.References(ctx, opts.Organization, opts.Repository)
@@ -48,6 +48,22 @@ func DetermineRange(ctx context.Context, client *github.Client, log logrus.Field
 			targetTag = &allRepoRefs.Tags[i]
 			break
 		}
+	}
+
+	if singleReleaseBranch != "" {
+		refs, err := client.References(ctx, opts.Organization, opts.Repository)
+		if err != nil {
+			return "", nil, err
+		}
+		
+		return targetTag.Hash, func(c types.Commit) bool {
+			for _, t := range refs.Tags {
+				if t.Hash == c.Hash && c.Hash != targetTag.Hash {
+					return true
+				}
+			}
+			return false
+		}, nil
 	}
 
 	sv, err := semver.NewVersion(opts.ForVersion)

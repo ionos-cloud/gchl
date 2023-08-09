@@ -28,13 +28,14 @@ import (
 )
 
 type Options struct {
-	Organization string
-	Repository   string
-	ForVersion   string
-	GithubToken  string
-	End          string
-	Verbose      bool
-	OutputFormat string
+	Organization        string
+	Repository          string
+	ForVersion          string
+	GithubToken         string
+	End                 string
+	SingleReleaseBranch string
+	Verbose             bool
+	OutputFormat        string
 }
 
 var outputFormats = []string{"markdown", "json"}
@@ -45,6 +46,7 @@ func (o *Options) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVarP(&o.ForVersion, "for-version", "v", "", "Name of the release to generate the changelog for")
 	fs.StringVarP(&o.End, "end", "e", "", "Commit hash where to stop (instead of following the branch until the previous version)")
 	fs.StringVarP(&o.OutputFormat, "format", "f", "markdown", fmt.Sprintf("Output format (one of %v)", outputFormats))
+	fs.StringVarP(&o.SingleReleaseBranch, "single-release-branch", "s", "", "Name of the main branch, if you use a single branch for releases (leave empty to proceed with release branches)")
 	fs.BoolVarP(&o.Verbose, "verbose", "V", false, "Enable more verbose logging")
 }
 

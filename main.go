@@ -62,7 +62,7 @@ func main() {
 	}
 
 	flogger.Info("Resolving release commit range…")
-	head, stop, err := ranges.DetermineRange(ctx, client, flogger, opts)
+	head, stop, err := ranges.DetermineRange(ctx, client, flogger, opts, opts.SingleReleaseBranch)
 	if err != nil {
 		log.Fatalf("Failed to determine commit range: %v", err)
 	}
