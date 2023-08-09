@@ -110,6 +110,7 @@ func DetermineRange(ctx context.Context, client *github.Client, log logrus.Field
 	// out far back we need to go to collect all relevant commits.
 
 	// If a custom --end flag is given, this is trivial.
+
 	if opts.End != "" {
 		return targetTag.Hash, func(c types.Commit) bool {
 			return strings.HasPrefix(c.Hash, opts.End)
