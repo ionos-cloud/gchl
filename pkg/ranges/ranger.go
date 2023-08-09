@@ -78,6 +78,7 @@ func DetermineRange(ctx context.Context, client *github.Client, log logrus.Field
 		// yet and we should be looking at the release branch instead. Note that for new
 		// releases, there might not be a release branch yet, so we will fallback to the
 		// primary branch.
+
 		releaseBranch := fmt.Sprintf("release/v%d.%d", sv.Major(), sv.Minor())
 		for i, branch := range allRepoRefs.Branches {
 			if branch.Name == releaseBranch {
@@ -107,6 +108,7 @@ func DetermineRange(ctx context.Context, client *github.Client, log logrus.Field
 	// Now we know the top (latest) commit for the changelog (most likely
 	// the commit that is tagged with opts.ForVersion). Now we need to figure
 	// out far back we need to go to collect all relevant commits.
+
 	// If a custom --end flag is given, this is trivial.
 	if opts.End != "" {
 		return targetTag.Hash, func(c types.Commit) bool {
