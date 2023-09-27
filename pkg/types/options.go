@@ -29,9 +29,10 @@ type Options struct {
 	Organization        string
 	Repository          string
 	ForVersion          string
-	GithubToken	    string
-	End		    string
+	GithubToken         string
+	End                 string
 	SingleReleaseBranch string
+	FromHash            string
 	Verbose             bool
 }
 
@@ -41,6 +42,7 @@ func (o *Options) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVarP(&o.ForVersion, "for-version", "v", "", "Name of the release to generate the changelog for")
 	fs.StringVarP(&o.End, "end", "e", "", "Commit hash where to stop (instead of following the branch until the previous version)")
 	fs.StringVarP(&o.SingleReleaseBranch, "single-release-branch", "s", "", "Name of the main branch, if you use a single branch for releases (leave empty to proceed with release branches)")
+	fs.StringVarP(&o.FromHash, "from-hash", "h", "", "creates a changelog from the hash to the next tag (only works with single-release-branch option)")
 	fs.BoolVarP(&o.Verbose, "verbose", "V", false, "Enable more verbose logging")
 }
 
@@ -58,8 +60,16 @@ func (o *Options) Parse() error {
 		return errors.New("no --repository given")
 	}
 
-	if o.ForVersion == "" {
-		return errors.New("no --for-version given")
+	if o.ForVersion == "" && o.FromHash == "" {
+		return errors.New("no --for-version or --from-hash given")
+	}
+
+	if o.SingleReleaseBranch == "" && o.FromHash != "" {
+		return errors.New("you can not use --from-hash without --single-release-branch option")
+	}
+
+	if o.FromHash != "" {
+		return nil
 	}
 
 	if _, err := semver.NewVersion(o.ForVersion); err != nil {
