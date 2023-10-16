@@ -55,10 +55,22 @@ func DetermineRange(ctx context.Context, client *github.Client, log logrus.Field
 		if err != nil {
 			return "", nil, err
 		}
-		
-		return targetTag.Hash, func(c types.Commit) bool {
+
+		var newTarget string
+		if targetTag != nil {
+			newTarget = targetTag.Hash
+		} else {
+			for _, branch := range allRepoRefs.Branches {
+				if branch.Name == singleReleaseBranch {
+					newTarget = branch.Hash
+					break
+				}
+			}
+		}
+
+		return newTarget, func(c types.Commit) bool {
 			for _, t := range refs.Tags {
-				if t.Hash == c.Hash && c.Hash != targetTag.Hash {
+				if t.Hash == c.Hash && c.Hash != newTarget {
 					return true
 				}
 			}
