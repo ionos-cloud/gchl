@@ -46,9 +46,10 @@ The important functionality has been fixed
 
 ```
 Usage of ./gchl:
-  -e, --end string            Commit hash where to stop (instead of following the branch until the previous version)
-  -v, --for-version string    Name of the release to generate the changelog for
-  -o, --organization string   Name of the GitHub organization
-  -r, --repository string     Name of the repository
-  -V, --verbose               Enable more verbose logging
+  -e, --end string                     Commit hash where to stop (instead of following the branch until the previous version)
+  -v, --for-version string             Name of the release to generate the changelog for
+  -o, --organization string            Name of the GitHub organization
+  -r, --repository string              Name of the repository
+  -s, --single-release-branch string   Name of the main branch, if you use a single branch for releases (leave empty to proceed with release branches)
+  -V, --verbose                        Enable more verbose logging
 ```
